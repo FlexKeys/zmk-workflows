@@ -105,12 +105,6 @@ jobs:
           if [ "${{ env.base_dir }}" != "${GITHUB_WORKSPACE}" ]; then
             mkdir "${{ env.base_dir }}/config"
             cp -R config/* "${{ env.base_dir }}/config/"
-            if [ -d "boards" ]; then
-              cp -R boards "${{ env.base_dir }}/"
-            fi
-            if [ -d "zephyr" ]; then
-              cp -R zephyr "${{ env.base_dir }}/"
-            fi
           fi
 
       - name: Pull latest ZMK Docker image
