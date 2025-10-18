@@ -108,6 +108,7 @@ jobs:
             -v "${GITHUB_WORKSPACE}":"${GITHUB_WORKSPACE}" \
             -v "${{ env.build_dir }}":"${{ env.build_dir }}" \
             -w "${GITHUB_WORKSPACE}" \
+            -e GITHUB_WORKSPACE="${GITHUB_WORKSPACE}" \
             -e ZEPHYR_VERSION=4.1.0 \
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
