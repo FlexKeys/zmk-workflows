@@ -107,6 +107,23 @@ jobs:
             cp -R config/* "${{ env.base_dir }}/config/"
           fi
 
+      - name: Debug - List GITHUB_WORKSPACE contents
+        run: |
+          echo "Contents of GITHUB_WORKSPACE:"
+          ls -la "${GITHUB_WORKSPACE}"
+          if [ -d "${GITHUB_WORKSPACE}/boards" ]; then
+            echo "boards/ directory exists"
+            ls -la "${GITHUB_WORKSPACE}/boards/shields/"
+          else
+            echo "boards/ directory NOT FOUND"
+          fi
+          if [ -f "${GITHUB_WORKSPACE}/zephyr/module.yml" ]; then
+            echo "zephyr/module.yml exists"
+            cat "${GITHUB_WORKSPACE}/zephyr/module.yml"
+          else
+            echo "zephyr/module.yml NOT FOUND"
+          fi
+
       - name: Pull latest ZMK Docker image
         run: |
           docker pull zmkfirmware/zmk-build-arm:stable
