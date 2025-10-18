@@ -120,7 +120,7 @@ jobs:
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
               if [ \"\${USE_EXTRA_MODULES}\" = \"true\" ]; then
-                EXTRA_MODULES_ARG=\" -DZMK_EXTRA_MODULES=\${GITHUB_WORKSPACE}\"
+                EXTRA_MODULES_ARG=\" -DZMK_EXTRA_MODULES='\${GITHUB_WORKSPACE}'\"
               fi && \
               west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }}\${EXTRA_MODULES_ARG} ${{ matrix.cmake-args }}
             "
