@@ -81,23 +81,13 @@ jobs:
           shield: ${{ matrix.shield }}
           artifact_name: ${{ matrix.artifact-name }}
           snippet: ${{ matrix.snippet }}
-          workspace: ${{ github.workspace }}
         run: |
           if [ -n "${snippet}" ]; then
             extra_west_args="-S \"${snippet}\""
           fi
 
-          # Only add ZMK_EXTRA_MODULES for shields that need custom boards
-          # settings_reset is a standard shield and should not include custom modules
-          if [ -e zephyr/module.yml ] && [ "${shield}" != "settings_reset" ]; then
-            extra_modules_arg="-DZMK_EXTRA_MODULES=${workspace}"
-          else
-            extra_modules_arg=""
-          fi
-
           echo "zephyr_version=4.1.0" >> $GITHUB_ENV
           echo "extra_west_args=${extra_west_args}" >> $GITHUB_ENV
-          echo "extra_modules_arg=${extra_modules_arg}" >> $GITHUB_ENV
           echo "shield_arg=${shield:+-DSHIELD=\"$shield\"}" >> $GITHUB_ENV
           echo "display_name=${shield:+$shield - }${board}" >> $GITHUB_ENV
           echo "artifact_name=${artifact_name:-${shield:+$shield-}${board}-zmk}" >> $GITHUB_ENV
@@ -121,7 +111,18 @@ jobs:
               west init -l \"\${GITHUB_WORKSPACE}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
-              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} ${{ env.extra_modules_arg }} ${{ matrix.cmake-args }}
+              # Create symbolic links for custom shields to be discovered by CMake
+              if [ -d \"\${GITHUB_WORKSPACE}/boards/shields\" ] && [ \"\${{ matrix.shield }}\" != \"settings_reset\" ]; then
+                echo 'Creating symbolic links for custom shields...' && \
+                for shield_dir in \${GITHUB_WORKSPACE}/boards/shields/*/; do
+                  if [ -d \"\${shield_dir}\" ]; then
+                    shield_name=\$(basename \"\${shield_dir}\")
+                    echo \"Linking custom shield: \${shield_name}\"
+                    ln -sfn \"\${shield_dir}\" \"zmk/app/boards/shields/\${shield_name}\"
+                  fi
+                done
+              fi && \
+              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} ${{ matrix.cmake-args }}
             "
 
       - name: ${{ env.display_name }} Kconfig file
