@@ -84,7 +84,7 @@ jobs:
         run: |
           # Skip extra modules for settings_reset to avoid Kconfig circular dependency
           if [ -e zephyr/module.yml ] && [ "$shield" != "settings_reset" ]; then
-            export zmk_load_arg=" -DZMK_EXTRA_MODULES='\${GITHUB_WORKSPACE}'"
+            export zmk_load_arg=" -DZMK_EXTRA_MODULES=\"\${GITHUB_WORKSPACE}\""
           fi
 
           if [ -n "${snippet}" ]; then
