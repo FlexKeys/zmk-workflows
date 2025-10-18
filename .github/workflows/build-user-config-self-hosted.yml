@@ -111,7 +111,7 @@ jobs:
               west init -l \"\${GITHUB_WORKSPACE}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
-              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} -DZMK_EXTRA_MODULES=\${GITHUB_WORKSPACE} ${{ matrix.cmake-args }}
+              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} -DZMK_EXTRA_MODULES=${GITHUB_WORKSPACE} ${{ matrix.cmake-args }}
             "
 
       - name: ${{ env.display_name }} Kconfig file
