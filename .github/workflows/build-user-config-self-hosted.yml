@@ -110,14 +110,14 @@ jobs:
               git config --global --add safe.directory '*' && \
               west init -l \"\${GITHUB_WORKSPACE}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
-              west zephyr-export && \
               if [ -d \"\${GITHUB_WORKSPACE}/boards\" ]; then
-                echo \"Copying custom boards to ZMK source tree...\" && \
+                echo \"Copying custom boards to ZMK source tree BEFORE zephyr-export...\" && \
                 echo \"Source structure:\" && ls -R \"\${GITHUB_WORKSPACE}/boards\" && \
                 cp -r \"\${GITHUB_WORKSPACE}/boards\"/* zmk/app/boards/ && \
                 echo \"Destination after copy:\" && ls -la zmk/app/boards/shields/ && \
                 echo \"Custom boards copied.\"
               fi && \
+              west zephyr-export && \
               west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} ${{ matrix.cmake-args }}
             "
 
