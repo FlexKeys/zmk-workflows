@@ -83,9 +83,9 @@ jobs:
           snippet: ${{ matrix.snippet }}
         run: |
           if [ -e zephyr/module.yml ]; then
-            export zmk_load_arg=" -DZMK_EXTRA_MODULES='${GITHUB_WORKSPACE}'"
             new_tmp_dir=$(mktemp -d)
             echo "base_dir=${new_tmp_dir}" >> $GITHUB_ENV
+            export zmk_load_arg=" -DZMK_EXTRA_MODULES='${new_tmp_dir}'"
           else
             echo "base_dir=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
           fi
@@ -100,28 +100,30 @@ jobs:
           echo "display_name=${shield:+$shield - }${board}" >> $GITHUB_ENV
           echo "artifact_name=${artifact_name:-${shield:+$shield-}${board}-zmk}" >> $GITHUB_ENV
 
-      - name: Copy config files to isolated temporary directory
+      - name: Copy files to isolated temporary directory
         run: |
           if [ "${{ env.base_dir }}" != "${GITHUB_WORKSPACE}" ]; then
             mkdir "${{ env.base_dir }}/config"
             cp -R config/* "${{ env.base_dir }}/config/"
+            cp -R boards "${{ env.base_dir }}/"
+            cp -R zephyr "${{ env.base_dir }}/"
           fi
 
-      - name: Debug - List GITHUB_WORKSPACE contents
+      - name: Debug - List base_dir contents
         run: |
-          echo "Contents of GITHUB_WORKSPACE:"
-          ls -la "${GITHUB_WORKSPACE}"
-          if [ -d "${GITHUB_WORKSPACE}/boards" ]; then
-            echo "boards/ directory exists"
-            ls -la "${GITHUB_WORKSPACE}/boards/shields/"
+          echo "Contents of base_dir (${{ env.base_dir }}):"
+          ls -la "${{ env.base_dir }}"
+          if [ -d "${{ env.base_dir }}/boards" ]; then
+            echo "boards/ directory exists in base_dir"
+            ls -la "${{ env.base_dir }}/boards/shields/"
           else
-            echo "boards/ directory NOT FOUND"
+            echo "boards/ directory NOT FOUND in base_dir"
           fi
-          if [ -f "${GITHUB_WORKSPACE}/zephyr/module.yml" ]; then
-            echo "zephyr/module.yml exists"
-            cat "${GITHUB_WORKSPACE}/zephyr/module.yml"
+          if [ -f "${{ env.base_dir }}/zephyr/module.yml" ]; then
+            echo "zephyr/module.yml exists in base_dir"
+            cat "${{ env.base_dir }}/zephyr/module.yml"
           else
-            echo "zephyr/module.yml NOT FOUND"
+            echo "zephyr/module.yml NOT FOUND in base_dir"
           fi
 
       - name: Pull latest ZMK Docker image
