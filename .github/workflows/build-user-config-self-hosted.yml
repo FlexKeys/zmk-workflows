@@ -90,7 +90,7 @@ jobs:
           # Only add ZMK_EXTRA_MODULES for shields that need custom boards
           # settings_reset is a standard shield and should not include custom modules
           if [ -e zephyr/module.yml ] && [ "${shield}" != "settings_reset" ]; then
-            extra_modules_arg="-DZMK_EXTRA_MODULES=${workspace}"
+            extra_modules_arg="-DZMK_EXTRA_MODULES='${workspace}'"
           else
             extra_modules_arg=""
           fi
