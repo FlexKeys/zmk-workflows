@@ -111,18 +111,7 @@ jobs:
               west init -l \"\${GITHUB_WORKSPACE}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
-              # Create symbolic links for custom shields to be discovered by CMake
-              if [ -d \"\${GITHUB_WORKSPACE}/boards/shields\" ] && [ \"\${{ matrix.shield }}\" != \"settings_reset\" ]; then
-                echo 'Creating symbolic links for custom shields...' && \
-                for shield_dir in \${GITHUB_WORKSPACE}/boards/shields/*/; do
-                  if [ -d \"\${shield_dir}\" ]; then
-                    shield_name=\$(basename \"\${shield_dir}\")
-                    echo \"Linking custom shield: \${shield_name}\"
-                    ln -sfn \"\${shield_dir}\" \"zmk/app/boards/shields/\${shield_name}\"
-                  fi
-                done
-              fi && \
-              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} ${{ matrix.cmake-args }}
+              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} -DBOARD_ROOT=\${GITHUB_WORKSPACE} ${{ matrix.cmake-args }}
             "
 
       - name: ${{ env.display_name }} Kconfig file
