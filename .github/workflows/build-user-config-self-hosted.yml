@@ -110,12 +110,12 @@ jobs:
               git config --global --add safe.directory '*' && \
               west init -l \"\${GITHUB_WORKSPACE}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
-              if [ -d \"\${GITHUB_WORKSPACE}/boards\" ]; then
-                echo \"Copying custom boards to ZMK source tree BEFORE zephyr-export...\" && \
-                echo \"Source structure:\" && ls -R \"\${GITHUB_WORKSPACE}/boards\" && \
-                cp -r \"\${GITHUB_WORKSPACE}/boards\"/* zmk/app/boards/ && \
-                echo \"Destination after copy:\" && ls -la zmk/app/boards/shields/ && \
-                echo \"Custom boards copied.\"
+              if [ -d \"\${GITHUB_WORKSPACE}/boards/shields\" ]; then
+                echo \"Copying custom shields to ZMK source tree BEFORE zephyr-export...\" && \
+                echo \"Source shields:\" && ls -la \"\${GITHUB_WORKSPACE}/boards/shields/\" && \
+                cp -r \"\${GITHUB_WORKSPACE}/boards/shields\"/* zmk/app/boards/shields/ && \
+                echo \"Destination shields after copy:\" && ls -la zmk/app/boards/shields/ | grep nice_oled && \
+                echo \"Custom shields copied.\"
               fi && \
               west zephyr-export && \
               west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }} ${{ matrix.cmake-args }}
