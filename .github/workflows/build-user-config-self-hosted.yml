@@ -84,7 +84,9 @@ jobs:
         run: |
           # Skip extra modules for settings_reset to avoid Kconfig circular dependency
           if [ -e zephyr/module.yml ] && [ "$shield" != "settings_reset" ]; then
-            export zmk_load_arg=" -DZMK_EXTRA_MODULES=\"\${GITHUB_WORKSPACE}\""
+            echo "use_extra_modules=true" >> $GITHUB_ENV
+          else
+            echo "use_extra_modules=false" >> $GITHUB_ENV
           fi
 
           if [ -n "${snippet}" ]; then
@@ -93,7 +95,7 @@ jobs:
 
           echo "zephyr_version=4.1.0" >> $GITHUB_ENV
           echo "extra_west_args=${extra_west_args}" >> $GITHUB_ENV
-          echo "extra_cmake_args=${shield:+-DSHIELD=\"$shield\"}${zmk_load_arg}" >> $GITHUB_ENV
+          echo "shield_arg=${shield:+-DSHIELD=\"$shield\"}" >> $GITHUB_ENV
           echo "display_name=${shield:+$shield - }${board}" >> $GITHUB_ENV
           echo "artifact_name=${artifact_name:-${shield:+$shield-}${board}-zmk}" >> $GITHUB_ENV
 
@@ -109,14 +111,18 @@ jobs:
             -v "${{ env.build_dir }}":"${{ env.build_dir }}" \
             -w "${GITHUB_WORKSPACE}" \
             -e GITHUB_WORKSPACE="${GITHUB_WORKSPACE}" \
+            -e USE_EXTRA_MODULES="${{ env.use_extra_modules }}" \
             -e ZEPHYR_VERSION=4.1.0 \
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
-              west init -l \"${GITHUB_WORKSPACE}/config\" && \
+              west init -l \"\${GITHUB_WORKSPACE}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
-              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=${GITHUB_WORKSPACE}/config ${{ env.extra_cmake_args }} ${{ matrix.cmake-args }}
+              if [ \"\${USE_EXTRA_MODULES}\" = \"true\" ]; then
+                EXTRA_MODULES_ARG=\" -DZMK_EXTRA_MODULES=\${GITHUB_WORKSPACE}\"
+              fi && \
+              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=\${GITHUB_WORKSPACE}/config ${{ env.shield_arg }}\${EXTRA_MODULES_ARG} ${{ matrix.cmake-args }}
             "
 
       - name: ${{ env.display_name }} Kconfig file
