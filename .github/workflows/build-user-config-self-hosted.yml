@@ -82,13 +82,7 @@ jobs:
           artifact_name: ${{ matrix.artifact-name }}
           snippet: ${{ matrix.snippet }}
         run: |
-          # Always use GITHUB_WORKSPACE for module discovery
           echo "base_dir=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
-
-          # Set ZMK_EXTRA_MODULES if zephyr/module.yml exists
-          if [ -e zephyr/module.yml ]; then
-            export zmk_load_arg=" -DZMK_EXTRA_MODULES='${GITHUB_WORKSPACE}'"
-          fi
 
           if [ -n "${snippet}" ]; then
             extra_west_args="-S \"${snippet}\""
@@ -96,21 +90,9 @@ jobs:
 
           echo "zephyr_version=4.1.0" >> $GITHUB_ENV
           echo "extra_west_args=${extra_west_args}" >> $GITHUB_ENV
-          echo "extra_cmake_args=${shield:+-DSHIELD=\"$shield\"}${zmk_load_arg}" >> $GITHUB_ENV
+          echo "extra_cmake_args=${shield:+-DSHIELD=\"$shield\"}" >> $GITHUB_ENV
           echo "display_name=${shield:+$shield - }${board}" >> $GITHUB_ENV
           echo "artifact_name=${artifact_name:-${shield:+$shield-}${board}-zmk}" >> $GITHUB_ENV
-
-      - name: Debug - Verify module files
-        run: |
-          echo "Working in: ${GITHUB_WORKSPACE}"
-          if [ -d "${GITHUB_WORKSPACE}/boards" ]; then
-            echo "✓ boards/ directory exists"
-            ls -la "${GITHUB_WORKSPACE}/boards/shields/" 2>/dev/null || echo "No shields found"
-          fi
-          if [ -f "${GITHUB_WORKSPACE}/zephyr/module.yml" ]; then
-            echo "✓ zephyr/module.yml exists"
-            cat "${GITHUB_WORKSPACE}/zephyr/module.yml"
-          fi
 
       - name: Pull latest ZMK Docker image
         run: |
@@ -124,7 +106,6 @@ jobs:
             -v "${{ env.build_dir }}":"${{ env.build_dir }}" \
             -w "${GITHUB_WORKSPACE}" \
             -e ZEPHYR_VERSION=4.1.0 \
-            -e ZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}" \
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
