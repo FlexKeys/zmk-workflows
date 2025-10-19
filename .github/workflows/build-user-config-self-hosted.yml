@@ -147,6 +147,10 @@ jobs:
               west init -l \"${{ env.base_dir }}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
+              echo \"DEBUG: ZMK_EXTRA_MODULES=\$ZMK_EXTRA_MODULES\" && \
+              west list | grep -E '(name|path)' | head -20 && \
+              echo \"DEBUG: Checking for nice_oled_custom shield\" && \
+              find \"${{ env.base_dir }}/boards\" -name \"*.shield\" -o -name \"Kconfig.shield\" 2>/dev/null | head -10 && \
               west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=${{ env.base_dir }}/config ${{ env.extra_cmake_args }} ${{ matrix.cmake-args }}
             "
 
