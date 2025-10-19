@@ -105,6 +105,13 @@ jobs:
         run: |
           docker pull zmkfirmware/zmk-build-arm:stable
 
+      - name: Copy config to isolated directory if using zephyr module
+        run: |
+          if [ "${{ env.base_dir }}" != "${GITHUB_WORKSPACE}" ]; then
+            mkdir -p "${{ env.base_dir }}/${{ inputs.config_path }}"
+            cp -R "${{ inputs.config_path }}/"* "${{ env.base_dir }}/${{ inputs.config_path }}/"
+          fi
+
       - name: Use ZMK Docker container for build
         run: |
           docker run --rm \
@@ -117,11 +124,6 @@ jobs:
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
-              # Create isolated directory and copy config if using zephyr module
-              if [ '${{ env.base_dir }}' != '${GITHUB_WORKSPACE}' ]; then
-                mkdir -p '${{ env.base_dir }}/${{ inputs.config_path }}' && \
-                cp -R '${GITHUB_WORKSPACE}/${{ inputs.config_path }}/'* '${{ env.base_dir }}/${{ inputs.config_path }}/'
-              fi && \
               west init -l '${{ env.base_dir }}/${{ inputs.config_path }}' && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
