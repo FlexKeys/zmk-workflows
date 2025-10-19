@@ -82,12 +82,12 @@ jobs:
           artifact_name: ${{ matrix.artifact-name }}
           snippet: ${{ matrix.snippet }}
         run: |
+          # Always use GITHUB_WORKSPACE for module discovery
+          echo "base_dir=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+
+          # Set ZMK_EXTRA_MODULES if zephyr/module.yml exists
           if [ -e zephyr/module.yml ]; then
-            new_tmp_dir=$(mktemp -d)
-            echo "base_dir=${new_tmp_dir}" >> $GITHUB_ENV
-            export zmk_load_arg=" -DZMK_EXTRA_MODULES='${new_tmp_dir}'"
-          else
-            echo "base_dir=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+            export zmk_load_arg=" -DZMK_EXTRA_MODULES='${GITHUB_WORKSPACE}'"
           fi
 
           if [ -n "${snippet}" ]; then
@@ -100,30 +100,16 @@ jobs:
           echo "display_name=${shield:+$shield - }${board}" >> $GITHUB_ENV
           echo "artifact_name=${artifact_name:-${shield:+$shield-}${board}-zmk}" >> $GITHUB_ENV
 
-      - name: Copy files to isolated temporary directory
+      - name: Debug - Verify module files
         run: |
-          if [ "${{ env.base_dir }}" != "${GITHUB_WORKSPACE}" ]; then
-            mkdir "${{ env.base_dir }}/config"
-            cp -R config/* "${{ env.base_dir }}/config/"
-            cp -R boards "${{ env.base_dir }}/"
-            cp -R zephyr "${{ env.base_dir }}/"
+          echo "Working in: ${GITHUB_WORKSPACE}"
+          if [ -d "${GITHUB_WORKSPACE}/boards" ]; then
+            echo "✓ boards/ directory exists"
+            ls -la "${GITHUB_WORKSPACE}/boards/shields/" 2>/dev/null || echo "No shields found"
           fi
-
-      - name: Debug - List base_dir contents
-        run: |
-          echo "Contents of base_dir (${{ env.base_dir }}):"
-          ls -la "${{ env.base_dir }}"
-          if [ -d "${{ env.base_dir }}/boards" ]; then
-            echo "boards/ directory exists in base_dir"
-            ls -la "${{ env.base_dir }}/boards/shields/"
-          else
-            echo "boards/ directory NOT FOUND in base_dir"
-          fi
-          if [ -f "${{ env.base_dir }}/zephyr/module.yml" ]; then
-            echo "zephyr/module.yml exists in base_dir"
-            cat "${{ env.base_dir }}/zephyr/module.yml"
-          else
-            echo "zephyr/module.yml NOT FOUND in base_dir"
+          if [ -f "${GITHUB_WORKSPACE}/zephyr/module.yml" ]; then
+            echo "✓ zephyr/module.yml exists"
+            cat "${GITHUB_WORKSPACE}/zephyr/module.yml"
           fi
 
       - name: Pull latest ZMK Docker image
@@ -135,23 +121,17 @@ jobs:
           docker run --rm \
             --user $(id -u):$(id -g) \
             -v "${GITHUB_WORKSPACE}":"${GITHUB_WORKSPACE}" \
-            -v "${{ env.base_dir }}":"${{ env.base_dir }}" \
             -v "${{ env.build_dir }}":"${{ env.build_dir }}" \
-            -w "${{ env.base_dir }}" \
-            -e GITHUB_WORKSPACE="${GITHUB_WORKSPACE}" \
+            -w "${GITHUB_WORKSPACE}" \
             -e ZEPHYR_VERSION=4.1.0 \
-            -e ZMK_EXTRA_MODULES="${{ env.base_dir }}" \
+            -e ZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}" \
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
-              west init -l \"${{ env.base_dir }}/config\" && \
+              west init -l \"${GITHUB_WORKSPACE}/config\" && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
-              echo \"DEBUG: ZMK_EXTRA_MODULES=\$ZMK_EXTRA_MODULES\" && \
-              west list | grep -E '(name|path)' | head -20 && \
-              echo \"DEBUG: Checking for nice_oled_custom shield\" && \
-              find \"${{ env.base_dir }}/boards\" -name \"*.shield\" -o -name \"Kconfig.shield\" 2>/dev/null | head -10 && \
-              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=${{ env.base_dir }}/config ${{ env.extra_cmake_args }} ${{ matrix.cmake-args }}
+              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=${GITHUB_WORKSPACE}/config ${{ env.extra_cmake_args }} ${{ matrix.cmake-args }}
             "
 
       - name: ${{ env.display_name }} Kconfig file
@@ -194,6 +174,11 @@ jobs:
         with:
           name: artifact-${{ env.artifact_name }}
           path: ${{ env.build_dir }}/artifacts
+
+      - name: Cleanup temp directories
+        if: always()
+        run: |
+          sudo rm -rf "${{ env.build_dir }}"
 
   merge:
     runs-on: ${{ inputs.runs_on }}
