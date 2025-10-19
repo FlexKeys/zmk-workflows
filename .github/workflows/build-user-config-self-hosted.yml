@@ -140,6 +140,7 @@ jobs:
             -w "${{ env.base_dir }}" \
             -e GITHUB_WORKSPACE="${GITHUB_WORKSPACE}" \
             -e ZEPHYR_VERSION=4.1.0 \
+            -e ZMK_EXTRA_MODULES="${{ env.base_dir }}" \
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
