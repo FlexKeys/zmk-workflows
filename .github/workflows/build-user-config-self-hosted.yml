@@ -82,11 +82,13 @@ jobs:
           artifact_name: ${{ matrix.artifact-name }}
           snippet: ${{ matrix.snippet }}
         run: |
-          echo "base_dir=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
-
-          # Set ZMK_EXTRA_MODULES if zephyr/module.yml exists
+          # Set base_dir and ZMK_EXTRA_MODULES following official ZMK workflow pattern
           if [ -e zephyr/module.yml ]; then
             export zmk_load_arg=" -DZMK_EXTRA_MODULES='${GITHUB_WORKSPACE}'"
+            # Use isolated temp directory for west workspace (NOT GITHUB_WORKSPACE)
+            echo "base_dir=/tmp/zmk-config" >> $GITHUB_ENV
+          else
+            echo "base_dir=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
           fi
 
           if [ -n "${snippet}" ]; then
@@ -109,16 +111,21 @@ jobs:
             --user $(id -u):$(id -g) \
             -v "${GITHUB_WORKSPACE}":"${GITHUB_WORKSPACE}" \
             -v "${{ env.build_dir }}":"${{ env.build_dir }}" \
-            -w "${GITHUB_WORKSPACE}" \
+            -w "${{ env.base_dir }}" \
             -e ZEPHYR_VERSION=4.1.0 \
             -e ZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}" \
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
-              west init -l \"${GITHUB_WORKSPACE}/config\" && \
+              # Create isolated directory and copy config if using zephyr module
+              if [ '${{ env.base_dir }}' != '${GITHUB_WORKSPACE}' ]; then
+                mkdir -p '${{ env.base_dir }}/${{ inputs.config_path }}' && \
+                cp -R '${GITHUB_WORKSPACE}/${{ inputs.config_path }}/'* '${{ env.base_dir }}/${{ inputs.config_path }}/'
+              fi && \
+              west init -l '${{ env.base_dir }}/${{ inputs.config_path }}' && \
               west update --fetch-opt=--filter=tree:0 && \
               west zephyr-export && \
-              west build -s zmk/app -d \"${{ env.build_dir }}\" -b \"${{ matrix.board }}\" ${{ env.extra_west_args }} -- -DZMK_CONFIG=${GITHUB_WORKSPACE}/config ${{ env.extra_cmake_args }} ${{ matrix.cmake-args }}
+              west build -s zmk/app -d '${{ env.build_dir }}' -b '${{ matrix.board }}' ${{ env.extra_west_args }} -- -DZMK_CONFIG='${{ env.base_dir }}/${{ inputs.config_path }}' ${{ env.extra_cmake_args }} ${{ matrix.cmake-args }}
             "
 
       - name: ${{ env.display_name }} Kconfig file
@@ -168,12 +175,18 @@ jobs:
           # Clean up build temp directory
           sudo rm -rf "${{ env.build_dir }}"
 
-          # Clean up west workspace (modules, zmk, zephyr downloaded by west)
+          # Clean up isolated west workspace if using zephyr module
+          if [ "${{ env.base_dir }}" != "${GITHUB_WORKSPACE}" ]; then
+            sudo rm -rf "${{ env.base_dir }}" 2>/dev/null || true
+          fi
+
+          # Clean up west workspace in GITHUB_WORKSPACE (modules, zmk, zephyr downloaded by west)
           cd "${GITHUB_WORKSPACE}" || exit 0
           sudo rm -rf modules/ zmk/ zephyr/ .west/ bootloader/ 2>/dev/null || true
 
           # Clean up any leftover old temp directories (safety net)
           sudo find /tmp -maxdepth 1 -type d -name "tmp.*" -mmin +120 -delete 2>/dev/null || true
+          sudo find /tmp -maxdepth 1 -type d -name "zmk-config" -mmin +120 -delete 2>/dev/null || true
 
   merge:
     runs-on: ${{ inputs.runs_on }}
