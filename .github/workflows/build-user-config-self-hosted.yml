@@ -84,13 +84,18 @@ jobs:
         run: |
           echo "base_dir=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
 
+          # Set ZMK_EXTRA_MODULES if zephyr/module.yml exists
+          if [ -e zephyr/module.yml ]; then
+            export zmk_load_arg=" -DZMK_EXTRA_MODULES='${GITHUB_WORKSPACE}'"
+          fi
+
           if [ -n "${snippet}" ]; then
             extra_west_args="-S \"${snippet}\""
           fi
 
           echo "zephyr_version=4.1.0" >> $GITHUB_ENV
           echo "extra_west_args=${extra_west_args}" >> $GITHUB_ENV
-          echo "extra_cmake_args=${shield:+-DSHIELD=\"$shield\"}" >> $GITHUB_ENV
+          echo "extra_cmake_args=${shield:+-DSHIELD=\"$shield\"}${zmk_load_arg}" >> $GITHUB_ENV
           echo "display_name=${shield:+$shield - }${board}" >> $GITHUB_ENV
           echo "artifact_name=${artifact_name:-${shield:+$shield-}${board}-zmk}" >> $GITHUB_ENV
 
@@ -106,6 +111,7 @@ jobs:
             -v "${{ env.build_dir }}":"${{ env.build_dir }}" \
             -w "${GITHUB_WORKSPACE}" \
             -e ZEPHYR_VERSION=4.1.0 \
+            -e ZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}" \
             zmkfirmware/zmk-build-arm:stable \
             /bin/bash -c "
               git config --global --add safe.directory '*' && \
