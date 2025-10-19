@@ -175,10 +175,18 @@ jobs:
           name: artifact-${{ env.artifact_name }}
           path: ${{ env.build_dir }}/artifacts
 
-      - name: Cleanup temp directories
+      - name: Cleanup build artifacts and west workspace
         if: always()
         run: |
+          # Clean up build temp directory
           sudo rm -rf "${{ env.build_dir }}"
+
+          # Clean up west workspace (modules, zmk, zephyr downloaded by west)
+          cd "${GITHUB_WORKSPACE}" || exit 0
+          sudo rm -rf modules/ zmk/ zephyr/ .west/ bootloader/ 2>/dev/null || true
+
+          # Clean up any leftover old temp directories (safety net)
+          sudo find /tmp -maxdepth 1 -type d -name "tmp.*" -mmin +120 -delete 2>/dev/null || true
 
   merge:
     runs-on: ${{ inputs.runs_on }}
