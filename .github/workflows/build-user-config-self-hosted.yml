@@ -118,6 +118,7 @@ jobs:
             --user $(id -u):$(id -g) \
             -v "${GITHUB_WORKSPACE}":"${GITHUB_WORKSPACE}" \
             -v "${{ env.build_dir }}":"${{ env.build_dir }}" \
+            -v "${{ env.base_dir }}":"${{ env.base_dir }}" \
             -w "${{ env.base_dir }}" \
             -e ZEPHYR_VERSION=4.1.0 \
             -e ZMK_EXTRA_MODULES="${GITHUB_WORKSPACE}" \
